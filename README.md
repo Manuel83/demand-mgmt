@@ -3,6 +3,24 @@
 Next.js (App Router, TypeScript, Tailwind) als Oberfläche, PocketBase als lokales Backend.
 Alles läuft lokal, ohne Cloud, E-Mail oder Anbindung an andere Systeme.
 
+## Screenshots
+
+**Business Capability Map (Heatmap)** – L1-Capabilities als Spalten, L2 als Kacheln, eingefärbt nach Anzahl offener Demands (umschaltbar auf Summe Aufwand). Ein Klick zeigt zugeordnete Demands und tragende Anwendungen.
+
+![Capability-Heatmap](docs/screenshots/heatmap.png)
+
+**Triage-Inbox** – neue Demands nach Alter, Schnellaktionen im Seitenpanel (Domäne, Capability, Typ, Duplikat, freigeben, zurückstellen, ablehnen).
+
+![Triage-Inbox](docs/screenshots/triage.png)
+
+**Portfolio** – qualifizierte Demands mit Score und Rang; Entscheider genehmigen oder stellen direkt aus der Zeile zurück.
+
+![Portfolio](docs/screenshots/portfolio.png)
+
+**Demand-Detail, Qualifizierung und Scoring** – Stufe-2-Felder und gewichtetes Scoring (20–100).
+
+![Demand-Detail](docs/screenshots/detail.png)
+
 ## Start
 
 1. [PocketBase](https://pocketbase.io/docs/) herunterladen und die Programmdatei `pocketbase` ins Projektverzeichnis legen.

@@ -89,7 +89,7 @@ function Shell({ children }: { children: ReactNode }) {
             </button>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl p-6">{children}</main>
+        <main className="mx-auto max-w-[1600px] p-6">{children}</main>
       </div>
       {searchOpen && <SearchDialog onClose={() => setSearchOpen(false)} onPick={(id) => { setSearchOpen(false); router.push(`/demands/${id}`); }} />}
     </div>
