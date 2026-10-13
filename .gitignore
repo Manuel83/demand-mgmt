@@ -1,0 +1,9 @@
+node_modules
+.next
+pb_data
+pocketbase
+pocketbase.exe
+*.zip
+.env*.local
+next-env.d.ts
+pb_migrations
