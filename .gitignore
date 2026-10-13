@@ -7,3 +7,4 @@ pocketbase.exe
 .env*.local
 next-env.d.ts
 pb_migrations
+*.tsbuildinfo
