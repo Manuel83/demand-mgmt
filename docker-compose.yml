@@ -1,0 +1,24 @@
+services:
+  demand:
+    build:
+      context: .
+      args:
+        PB_VERSION: "0.40.5"
+    image: demand-mgmt:latest
+    container_name: demand
+    restart: unless-stopped
+    environment:
+      # Pflicht: Zugangsdaten des PocketBase-Superusers (Admin-Oberflaeche /_/)
+      PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@demand.local}
+      PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:?Bitte PB_ADMIN_PASSWORD in .env setzen}
+    ports:
+      # App; PocketBase ist intern ueber /pb erreichbar
+      - "${APP_PORT:-3000}:3000"
+      # Optional: PocketBase-Admin-Oberflaeche direkt (nur bei Bedarf freigeben)
+      # - "127.0.0.1:8090:8090"
+    volumes:
+      # Datenbank, Dateien und Backups bleiben bei Neustarts erhalten
+      - demand_data:/data
+
+volumes:
+  demand_data:

@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+.env*
+!.env.example
+pb_data
+pb_migrations
+pocketbase
+*.zip
+docs
+README.md
+Dockerfile
+docker-compose.yml
+*.tsbuildinfo
+next-env.d.ts
