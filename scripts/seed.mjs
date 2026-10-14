@@ -30,13 +30,23 @@ const STAFF = `@request.auth.role != "antragsteller"`;
 const ADMIN = `@request.auth.role = "admin"`;
 const SEE_VIA_DEMAND = `${AUTH} && (@request.auth.role != "antragsteller" || demand.requester = @request.auth.id || demand.department = @request.auth.department)`;
 const master = { listRule: AUTH, viewRule: AUTH, createRule: ADMIN, updateRule: ADMIN, deleteRule: ADMIN };
+// Demands sind fuer alle angemeldeten Benutzer lesbar (Entwuerfe nur fuer den Antragsteller und die IT)
+const VISIBLE_DEMAND = `${AUTH} && (@request.auth.role != "antragsteller" || demand.requester = @request.auth.id || demand.status != "ENTWURF")`;
 const demandChild = { listRule: SEE_VIA_DEMAND, viewRule: SEE_VIA_DEMAND, createRule: AUTH, updateRule: AUTH, deleteRule: AUTH };
+// Verknuepfungen (Capabilities, Anwendungen, Links) sind mit dem Demand sichtbar
+const demandRefs = { ...demandChild, listRule: VISIBLE_DEMAND, viewRule: VISIBLE_DEMAND };
 
 const ids = {};
 async function ensure(name, def) {
   try {
     const c = await pb.collections.getOne(name);
     ids[name] = c.id;
+    const rules = {};
+    for (const k of ["listRule", "viewRule", "createRule", "updateRule", "deleteRule"]) if (k in def) rules[k] = def[k];
+    if (Object.keys(rules).length && JSON.stringify(Object.keys(rules).map((k) => c[k])) !== JSON.stringify(Object.keys(rules).map((k) => rules[k]))) {
+      await pb.collections.update(c.id, rules);
+      console.log("Regeln aktualisiert:", name);
+    }
     return false;
   } catch {
     const c = await pb.collections.create({ name, type: "base", ...def, fields: [...def.fields, ...stamps] });
@@ -132,8 +142,8 @@ await ensure("demands", {
     rel("decidedBy", ids.users),
   ],
   indexes: ["CREATE UNIQUE INDEX idx_demands_number ON demands (number)"],
-  listRule: `${AUTH} && (@request.auth.role != "antragsteller" || requester = @request.auth.id || (department = @request.auth.department && status != "ENTWURF"))`,
-  viewRule: `${AUTH} && (@request.auth.role != "antragsteller" || requester = @request.auth.id || (department = @request.auth.department && status != "ENTWURF"))`,
+  listRule: `${AUTH} && (@request.auth.role != "antragsteller" || requester = @request.auth.id || status != "ENTWURF")`,
+  viewRule: `${AUTH} && (@request.auth.role != "antragsteller" || requester = @request.auth.id || status != "ENTWURF")`,
   createRule: `${AUTH} && @request.body.requester = @request.auth.id`,
   updateRule:
     `${AUTH} && (@request.auth.role != "antragsteller" || (requester = @request.auth.id && (status = "ENTWURF" || status = "EINGEREICHT")` +
@@ -145,11 +155,11 @@ await ensure("demands", {
 await ensure("demand_capabilities", {
   fields: [rel("demand", ids.demands, { required: true, cascadeDelete: true }), rel("capability", ids.capabilities, { required: true }), bool("isPrimary"), select("impact", ["NEU", "VERBESSERUNG", "ABLOESUNG"])],
   indexes: ["CREATE UNIQUE INDEX idx_dc_primary ON demand_capabilities (demand) WHERE isPrimary = 1"],
-  ...demandChild,
+  ...demandRefs,
 });
 await ensure("demand_applications", {
   fields: [rel("demand", ids.demands, { required: true, cascadeDelete: true }), rel("application", ids.applications, { required: true })],
-  ...demandChild,
+  ...demandRefs,
 });
 await ensure("demand_scores", {
   fields: [rel("demand", ids.demands, { required: true, cascadeDelete: true }), rel("criterion", ids["scoring_criteria"], { required: true }), num("value", { min: 1, max: 5, onlyInt: true }), rel("scoredBy", ids.users)],
@@ -160,7 +170,7 @@ await ensure("demand_scores", {
 });
 await ensure("demand_links", {
   fields: [rel("demand", ids.demands, { required: true, cascadeDelete: true }), rel("related", ids.demands, { required: true }), select("kind", ["DUPLIKAT", "VERWANDT"])],
-  ...demandChild,
+  ...demandRefs,
   createRule: AUTH,
 });
 await ensure("comments", {

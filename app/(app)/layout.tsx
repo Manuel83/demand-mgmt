@@ -31,8 +31,8 @@ function Shell({ children }: { children: ReactNode }) {
   const staff = user.role !== "antragsteller";
   const nav = [
     { href: "/", label: "Dashboard", show: true },
-    { href: "/demands/new", label: "Neuer Demand", show: true },
     { href: "/demands", label: "Meine Demands", show: true },
+    { href: "/all", label: "Alle Demands", show: true },
     { href: "/triage", label: "Triage", show: user.role === "triage" || user.role === "admin" },
     { href: "/portfolio", label: "Portfolio", show: user.role !== "antragsteller" },
     { href: "/capabilities", label: "Heatmap", show: staff },

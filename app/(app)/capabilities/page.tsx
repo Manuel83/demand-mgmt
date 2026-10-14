@@ -5,7 +5,7 @@ import { RecordModel } from "pocketbase";
 import { useAuth } from "@/components/auth";
 import { Card, Empty, PageHeader, Skeleton, StatusBadge } from "@/components/ui";
 import { Demand, pb } from "@/lib/pb";
-import { EFFORT_MID, OPEN_STATUS } from "@/lib/de";
+import { EFFORT_MID, OPEN_STATUS, STATUS_LABEL } from "@/lib/de";
 import { useCapabilities, useList } from "@/lib/data";
 
 export default function Heatmap() {
@@ -14,10 +14,11 @@ export default function Heatmap() {
   const [links, setLinks] = useState<RecordModel[] | null>(null);
   const [mode, setMode] = useState<"count" | "effort">("count");
   const [open, setOpen] = useState<string | null>(null);
+  const [status, setStatus] = useState("OPEN");
   const appCaps = useList("application_capabilities", { expand: "application" });
 
   useEffect(() => {
-    pb.collection("demand_capabilities").getFullList({ expand: "demand", filter: OPEN_STATUS.map((s) => `demand.status="${s}"`).join(" || ") }).then(setLinks);
+    pb.collection("demand_capabilities").getFullList({ expand: "demand", filter: `demand.status != "ENTWURF"` }).then(setLinks);
   }, []);
 
   const stats = useMemo(() => {
@@ -25,13 +26,14 @@ export default function Heatmap() {
     for (const l of links || []) {
       const d = l.expand?.demand as Demand | undefined;
       if (!d) continue;
+      if (status === "OPEN" ? !OPEN_STATUS.includes(d.status) : d.status !== status) continue;
       const s = (m[l.capability] ||= { count: 0, effort: 0, demands: [] });
       s.count += 1;
       s.effort += EFFORT_MID[d.effortSize] || 0;
       s.demands.push(d);
     }
     return m;
-  }, [links]);
+  }, [links, status]);
 
   if (!user) return null;
   if (user.role === "antragsteller") return <p>Die Heatmap ist für Triage und Entscheider sichtbar.</p>;
@@ -48,14 +50,27 @@ export default function Heatmap() {
         title="Capability-Heatmap"
         sub="Wo konzentriert sich der Veränderungsbedarf?"
         actions={
+          <>
+          <select
+            aria-label="Nach Status filtern"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
+          >
+            <option value="OPEN">Alle offenen Status</option>
+            {Object.entries(STATUS_LABEL).filter(([k]) => k !== "ENTWURF").map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
           <div role="group" aria-label="Darstellung" className="flex rounded-lg border border-slate-300 p-0.5 dark:border-slate-700">
-            {([["count", "Anzahl offene Demands"], ["effort", "Summe Aufwand (Tage)"]] as const).map(([k, l]) => (
+            {([["count", "Anzahl Demands"], ["effort", "Summe Aufwand (Tage)"]] as const).map(([k, l]) => (
               <button key={k} aria-pressed={mode === k} onClick={() => setMode(k)} className={`rounded-md px-3 py-1.5 text-sm ${mode === k ? "bg-indigo-600 text-white" : ""}`}>{l}</button>
             ))}
           </div>
+          </>
         }
       />
-      {Object.keys(stats).length === 0 && <Empty title="Noch keine zugeordneten Demands" hint="Sobald Demands auf Capabilities gemappt sind, färbt sich die Karte ein." />}
+      {Object.keys(stats).length === 0 && <Empty title="Keine Demands für diese Auswahl" hint="Wähle einen anderen Status oder ordne Demands Capabilities zu, dann färbt sich die Karte ein." />}
       <div className="overflow-x-auto pb-2">
         <div className="grid grid-flow-col gap-3" style={{ gridAutoColumns: "minmax(170px, 1fr)" }}>
           {l1.map((root) => (
@@ -87,7 +102,7 @@ export default function Heatmap() {
           <div className="mt-4 grid gap-6 md:grid-cols-2">
             <div>
               <h3 className="mb-2 text-sm font-medium">Zugeordnete Demands</h3>
-              {(stats[sel.id]?.demands || []).length === 0 && <p className="text-sm text-slate-500">Keine offenen Demands.</p>}
+              {(stats[sel.id]?.demands || []).length === 0 && <p className="text-sm text-slate-500">Keine Demands mit diesem Status.</p>}
               <ul className="space-y-2">
                 {(stats[sel.id]?.demands || []).map((d) => (
                   <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
